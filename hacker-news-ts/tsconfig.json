@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "strict": true, // 타입스크립트를 얼마나 엄격하게 적용해서 변환 시킬것인지 설정, 가장 핵심이 되는 기능
+        "target": "ES5", // 타입스크립트를 컴파일시 사용될 어떤 버전의 문법체계를 사용할 것인지 설정
+        "module": "CommonJS", 
+        "alwaysStrict": true,
+        "noImplicitAny": true, // strict 모드 하위 옵션임, Any타입을 사용하지 못하게 설정 -> 무조건 타입지정을 해주어야함.
+        "noImplicitThis": true, 
+        "sourceMap": true, // .map파일이 sourceMap임. 
+        "downlevelIteration": true
+    }
+}
