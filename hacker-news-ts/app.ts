@@ -3,15 +3,28 @@ type Store = {
     feeds: NewsFeed[];
 }
 
-type NewsFeed = {
+type News = {
     id: number;
-    comment_count: number;
+    time_ago: string;
+    title: string;
     url: string;
     user: string;
-    time_ago: string;
-    poitns: number;
-    title: string;
+    content: string
+}
+
+type NewsFeed = News & { // type alias의 기능으로 합칠 수 있음
+    comments_count: number;
+    points: number;
     read?: boolean; // optional 타입설정
+}
+
+type NewsDetail = News & {
+    comments: NewsComment[];
+}
+
+type NewsComment = News & {
+    comments: NewsComment[];
+    level: number;
 }
 
 const container: HTMLElement | null = document.getElementById('root');
@@ -23,14 +36,14 @@ const store: Store = {
     feeds: [],
 };
 
-function getData(url) {
+function getData<AjaxResponse>(url: string): AjaxResponse { // 제네릭 이용, T라고 작성하거나 명시적으로 길게 작성해도 됨.
     ajax.open('GET', url, false); // boolean => 동기/비동기 여부
     ajax.send();
 
     return JSON.parse(ajax.response);
 };
 
-function makeFeed(feeds) {
+function makeFeed(feeds: NewsFeed[]): NewsFeed[] {
     for (let i = 0; i < feeds.length; i++) { // 컴파일러가 타입추론을 통해 오류를 발생시키지 않음.
         feeds[i].read = false;
     }
@@ -38,7 +51,7 @@ function makeFeed(feeds) {
     return feeds;
 }
 
-function updateView(html) { // 타입 가드
+function updateView(html: string): void { // 타입 가드
     if (container != null) {
         container.innerHTML = html;
     } else {
@@ -46,7 +59,7 @@ function updateView(html) { // 타입 가드
     }
 }
 
-function newsFeed() {
+function newsFeed(): void {
     let newsFeed: NewsFeed[] = store.feeds;
     const newsList = [];
     let template = `
@@ -75,7 +88,7 @@ function newsFeed() {
     `;
 
     if (newsFeed.length === 0) {
-        newsFeed = store.feeds = makeFeed(getData(NEWS_URL))
+        newsFeed = store.feeds = makeFeed(getData<NewsFeed[]>(NEWS_URL)) // 제네릭 사용
     }
 
     for (let i = (store.currentPage - 1) * 10; i < store.currentPage * 10; i++) {
@@ -101,14 +114,15 @@ function newsFeed() {
     }
 
     template = template.replace('{{__news_feed__}}', newsList.join(''));
-    template = template.replace('{{__prev_page__}}', store.currentPage > 1 ? store.currentPage - 1 : 1);
-    template = template.replace('{{__next_page__}}', store.currentPage + 1);
+    template = template.replace('{{__prev_page__}}', String(store.currentPage > 1 ? store.currentPage - 1 : 1));
+    template = template.replace('{{__next_page__}}', String(store.currentPage + 1));
+
     updateView(template)
 }
 
-function newsDetail() {
+function newsDetail(): void {
     const id = location.hash.substring(7)
-    const newsContent = getData(CONTENT_URL.replace('@id', id));
+    const newsContent = getData<NewsDetail>(CONTENT_URL.replace('@id', id));
     let template = `
     <div class="bg-gray-600 min-h-screen pb-8">
       <div class="bg-white text-xl">
@@ -145,32 +159,35 @@ function newsDetail() {
         }
     }
 
-    function makeComment(comments, called = 0) {
-        const commentString = [];
-
-        for (let i = 0; i < comments.length; i++) {
-            commentString.push(`
-                <div style="padding-left: ${called * 40}px;" class="mt-4">
-                    <div class="text-gray-400">
-                        <i class="fa fa-sort-up mr-2"></i>
-                        <strong>${comments[i].user}</strong> ${comments[i].time_ago}
-                    </div>
-                    <p class="text-gray-700">${comments[i].content}</p>
-                </div>      
-            `)
-
-            if (comments[i].comments.length > 0) {
-                commentString.push(makeComment(comments[i].comments, called + 1));
-            }
-        }
-
-        return commentString.join('');
-
-    }
     updateView(template.replace('{{__comments__}}', makeComment(newsContent.comments)))
 }
 
-function router() {
+function makeComment(comments: NewsComment[]): string {
+    const commentString = [];
+
+    for (let i = 0; i < comments.length; i++) {
+        const comment: NewsComment = comments[i];
+
+        commentString.push(`
+            <div style="padding-left: ${comment.level * 40}px;" class="mt-4">
+                <div class="text-gray-400">
+                    <i class="fa fa-sort-up mr-2"></i>
+                    <strong>${comment.user}</strong> ${comment.time_ago}
+                </div>
+                <p class="text-gray-700">${comment.content}</p>
+            </div>      
+        `)
+
+        if (comment.comments.length > 0) {
+            commentString.push(makeComment(comment.comments));
+        }
+    }
+
+    return commentString.join('');
+
+}
+
+function router(): void {
     const routePath = location.hash;
 
     if (routePath === '') { // location.hash에 # 만 들어있을 경우엔 빈값을 반환한다.

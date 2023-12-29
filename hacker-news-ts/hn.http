@@ -1,0 +1,6 @@
+# REST Client 사용법
+###
+GET https://api.hnpwa.com/v0/news/1.json HTTP/1.1
+
+###
+GET https://api.hnpwa.com/v0/item/38791517.json HTTP/1.1
