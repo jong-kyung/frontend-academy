@@ -36,12 +36,34 @@ const store: Store = {
     feeds: [],
 };
 
-function getData<AjaxResponse>(url: string): AjaxResponse { // 제네릭 이용, T라고 작성하거나 명시적으로 길게 작성해도 됨.
-    ajax.open('GET', url, false); // boolean => 동기/비동기 여부
-    ajax.send();
+class Api {
+    url: string;
+    ajax: XMLHttpRequest;
 
-    return JSON.parse(ajax.response);
-};
+    constructor(url: string) {
+        this.url = url;
+        this.ajax = new XMLHttpRequest();
+    }
+
+    protected getRequest<AjaxResponse>(): AjaxResponse {  // 제네릭 설정
+        this.ajax.open('GET', this.url, false); // boolean => 동기/비동기 여부
+        this.ajax.send();
+
+        return JSON.parse(this.ajax.response);
+    }
+}
+
+class NewsFeedApi extends Api {
+    getData(): NewsFeed[] {
+        return this.getRequest<NewsFeed[]>();
+    }
+}
+
+class NewsDetailApi extends Api {
+    getData(): NewsDetail {
+        return this.getRequest<NewsDetail>();
+    }
+}
 
 function makeFeed(feeds: NewsFeed[]): NewsFeed[] {
     for (let i = 0; i < feeds.length; i++) { // 컴파일러가 타입추론을 통해 오류를 발생시키지 않음.
@@ -60,6 +82,7 @@ function updateView(html: string): void { // 타입 가드
 }
 
 function newsFeed(): void {
+    const api = new NewsFeedApi(NEWS_URL);
     let newsFeed: NewsFeed[] = store.feeds;
     const newsList = [];
     let template = `
@@ -88,7 +111,7 @@ function newsFeed(): void {
     `;
 
     if (newsFeed.length === 0) {
-        newsFeed = store.feeds = makeFeed(getData<NewsFeed[]>(NEWS_URL)) // 제네릭 사용
+        newsFeed = store.feeds = makeFeed(api.getData())
     }
 
     for (let i = (store.currentPage - 1) * 10; i < store.currentPage * 10; i++) {
@@ -122,7 +145,8 @@ function newsFeed(): void {
 
 function newsDetail(): void {
     const id = location.hash.substring(7)
-    const newsContent = getData<NewsDetail>(CONTENT_URL.replace('@id', id));
+    const api = new NewsDetailApi(CONTENT_URL.replace('@id', id))
+    const newsContent = api.getData();
     let template = `
     <div class="bg-gray-600 min-h-screen pb-8">
       <div class="bg-white text-xl">
