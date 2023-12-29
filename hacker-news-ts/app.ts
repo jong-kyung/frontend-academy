@@ -36,34 +36,46 @@ const store: Store = {
     feeds: [],
 };
 
+// 타입스크립트 공식문서에도 작성되어 있는 코드임.
+function applyApiMixins(targetClass: any, baseClasses: any[]) { // 유연성과 다중 상속을 위해 extends대신 mixins를 사용함. extends는 코드를 직접 수정해야하기 때문
+    baseClasses.forEach(baseClass => {
+        Object.getOwnPropertyNames(baseClass.prototype).forEach(name => {
+            const descriptor = Object.getOwnPropertyDescriptor(baseClass.prototype, name);
+
+            if (descriptor) {
+                Object.defineProperty(targetClass.prototype, name, descriptor);
+            }
+        });
+    });
+}
+
 class Api {
-    url: string;
-    ajax: XMLHttpRequest;
+    getRequest<AjaxResponse>(url: string): AjaxResponse {  // 제네릭 설정
+        const ajax = new XMLHttpRequest();
+        ajax.open('GET', url, false); // boolean => 동기/비동기 여부
+        ajax.send();
 
-    constructor(url: string) {
-        this.url = url;
-        this.ajax = new XMLHttpRequest();
-    }
-
-    protected getRequest<AjaxResponse>(): AjaxResponse {  // 제네릭 설정
-        this.ajax.open('GET', this.url, false); // boolean => 동기/비동기 여부
-        this.ajax.send();
-
-        return JSON.parse(this.ajax.response);
+        return JSON.parse(ajax.response);
     }
 }
 
-class NewsFeedApi extends Api {
+class NewsFeedApi {
     getData(): NewsFeed[] {
-        return this.getRequest<NewsFeed[]>();
+        return this.getRequest<NewsFeed[]>(NEWS_URL);
     }
 }
 
-class NewsDetailApi extends Api {
-    getData(): NewsDetail {
-        return this.getRequest<NewsDetail>();
+class NewsDetailApi {
+    getData(id: string): NewsDetail {
+        return this.getRequest<NewsDetail>(CONTENT_URL.replace('@id', id));
     }
 }
+
+interface NewsFeedApi extends Api {};
+interface NewsDetailApi extends Api {};
+
+applyApiMixins(NewsFeedApi, [Api]);
+applyApiMixins(NewsDetailApi, [Api]);
 
 function makeFeed(feeds: NewsFeed[]): NewsFeed[] {
     for (let i = 0; i < feeds.length; i++) { // 컴파일러가 타입추론을 통해 오류를 발생시키지 않음.
@@ -82,7 +94,7 @@ function updateView(html: string): void { // 타입 가드
 }
 
 function newsFeed(): void {
-    const api = new NewsFeedApi(NEWS_URL);
+    const api = new NewsFeedApi();
     let newsFeed: NewsFeed[] = store.feeds;
     const newsList = [];
     let template = `
@@ -145,8 +157,8 @@ function newsFeed(): void {
 
 function newsDetail(): void {
     const id = location.hash.substring(7)
-    const api = new NewsDetailApi(CONTENT_URL.replace('@id', id))
-    const newsContent = api.getData();
+    const api = new NewsDetailApi()
+    const newsContent = api.getData(id);
     let template = `
     <div class="bg-gray-600 min-h-screen pb-8">
       <div class="bg-white text-xl">
