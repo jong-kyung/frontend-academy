@@ -1,23 +1,30 @@
-import View from "../core/view";
+import View from '../core/view';
 
-export interface Store { // 유니온타입은 인터페이스를 통해 나타낼 수 없음. 따라서 type alias로 작성해주어야함. 보통 타입을 정의할때, 유니온타입이 없으면 인터페이스를 사용함
+export interface NewsStore {
+    getAllFeeds: () => NewsFeed[];
+    getFeed: (position: number) => NewsFeed;
+    setFeeds: (feeds: NewsFeed[]) => void;
+    makeRead: (id: number) => void;
+    hasFeeds: boolean;
     currentPage: number;
-    feeds: NewsFeed[];
+    numberOfFeed: number;
+    nextPage: number;
+    prevPage: number;
 }
 
 export interface News {
-    readonly id: number; // readonly 지시어를 typealias혹은 인터페이스로 정의해준 타입앞에 작성해주면 수정이 불가능함.
+    readonly id: number;
     readonly time_ago: string;
     readonly title: string;
     readonly url: string;
     readonly user: string;
-    readonly content: string
+    readonly content: string;
 }
 
-export interface NewsFeed extends News { // extends를 통해 확장함.
-    readonly comments_count: number;
+export interface NewsFeed extends News {
     readonly points: number;
-    read?: boolean; // optional 타입설정
+    readonly comments_count: number;
+    read?: boolean;
 }
 
 export interface NewsDetail extends News {
@@ -32,4 +39,5 @@ export interface NewsComment extends News {
 export interface RouteInfo {
     path: string;
     page: View;
+    params: RegExp | null;
 }
