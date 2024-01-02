@@ -1,6 +1,6 @@
 import View from '../core/view';
 import { NewsFeedApi } from '../core/api';
-import { NewsStore } from '../types';
+import { NewsStore, NewsFeed } from '../types';
 import { NEWS_URL } from '../config';
 
 const template = `
@@ -29,27 +29,36 @@ const template = `
 `;
 
 export default class NewsFeedView extends View {
-    private api: NewsFeedApi;
-    private store: NewsStore;
+  private api: NewsFeedApi;
+  private store: NewsStore;
 
-    constructor(containerId: string, store: NewsStore) {
-        super(containerId, template);
+  constructor(containerId: string, store: NewsStore) {
+    super(containerId, template);
 
-        this.store = store;
-        this.api = new NewsFeedApi(NEWS_URL);
+    this.store = store;
+    this.api = new NewsFeedApi(NEWS_URL);
 
-        if (!this.store.hasFeeds) {
-            this.store.setFeeds(this.api.getData());
-        }
+  }
+
+  render = (page: string = '1'): void => {
+    this.store.currentPage = Number(page);
+
+    if (!this.store.hasFeeds) {
+      this.api.getData((feeds: NewsFeed[]) => {
+        this.store.setFeeds(feeds);
+        this.renderView();
+      })
     }
 
-    render = (page: string = '1'): void => {
-        this.store.currentPage = Number(page);
+    this.renderView();
 
-        for (let i = (this.store.currentPage - 1) * 10; i < this.store.currentPage * 10; i++) {
-            const { id, title, comments_count, user, points, time_ago, read } = this.store.getFeed(i);
+  }
 
-            this.addHtml(`
+  renderView = () => {
+    for (let i = (this.store.currentPage - 1) * 10; i < this.store.currentPage * 10; i++) {
+      const { id, title, comments_count, user, points, time_ago, read } = this.store.getFeed(i);
+
+      this.addHtml(`
         <div class="p-6 ${read ? 'bg-red-500' : 'bg-white'} mt-6 rounded-lg shadow-md transition-colors duration-500 hover:bg-green-100">
           <div class="flex">
             <div class="flex-auto">
@@ -68,12 +77,12 @@ export default class NewsFeedView extends View {
           </div>
         </div>    
       `);
-        }
-
-        this.setTemplateData('news_feed', this.getHtml());
-        this.setTemplateData('prev_page', String(this.store.prevPage));
-        this.setTemplateData('next_page', String(this.store.nextPage));
-
-        this.updateView();
     }
+
+    this.setTemplateData('news_feed', this.getHtml());
+    this.setTemplateData('prev_page', String(this.store.prevPage));
+    this.setTemplateData('next_page', String(this.store.nextPage));
+
+    this.updateView();
+  }
 }
