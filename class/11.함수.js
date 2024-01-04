@@ -63,12 +63,17 @@ const ten = x => 100 + x; // 인자가 하나 일때 괄호 생략이 가능하�
 //* 생성기 함수(generator function)
 // 최초에 호출을 하면 함수가 실행되지 않고 실행 준비 상태로 만들고 객체를 반환한다 그 객체 안에는 함수를 실행할 도구를 담은 객체를 반환함.
 function* gen() {
-    yield 10; 
-    yield 20; 
+    yield 10;
+    yield 20;
     return 30;
 }
 
 const g = gen(); // g라는 상수에는 generator를 제어할 객체가 반환된다. 이 객체에는 하나의 메서드가 존재하는데 그 메서드는 next 메서드(함수)이다.
 g.next(); // 제너레이터 함수의 실행;
-g.next(); 
-g.next(); 
+g.next();
+g.next();
+
+//* 비동기 함수
+async function myTask() {
+        
+}
